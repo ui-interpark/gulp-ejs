@@ -1,7 +1,5 @@
 # gulp-ejs [![NPM version][npm-image]][npm-url] [![Build Status][travis-image]][travis-url] [![Dependency Status][depstat-image]][depstat-url]
 
-[![Greenkeeper badge](https://badges.greenkeeper.io/rogeriopvl/gulp-ejs.svg)](https://greenkeeper.io/)
-
 > ejs plugin for [gulp](https://github.com/wearefractal/gulp)
 
 ## Usage
@@ -23,7 +21,11 @@ gulp.src("./templates/*.ejs")
 	}))
 	.pipe(gulp.dest("./dist"))
 ```
-If you want to use `gulp-ejs` in a watch/livereload task, you may want to avoid gulp exiting on error when, for instance, a partial file is `ENOENT`.
+
+### Watch mode error handling (for gulp v3 or below)
+
+If you want to use `gulp-ejs` in a watch/livereload task, you may want to avoid gulp exiting on error when, for instance, a partial file is `ENOENT` or an ejs syntax error.
+
 Here's an example on how to make it work:
 
 ```javascript
@@ -38,29 +40,45 @@ gulp.src('./templates/*.ejs')
 ```
 This will make gulp log the error and continue normal execution.
 
-If you want to specify the extension of output files, set the ext option:
+**Please note that you don't need to do this for Gulp v4.**
 
-```javascript
-var ejs = require('gulp-ejs')
-
-gulp.src('./templates/*.ejs')
-	.pipe(ejs({ msg: 'Hello Gulp!'}, {}, { ext: '.html' }))
-	.pipe(gulp.dest('./dist'))
-```
-
-### Acessing the ejs object
+### Accessing the ejs object
 
 The ejs object is also exported and you can use it to configure ejs:
 
 ```javascript
-var gulpEjs = require('gulp-ejs')
+const ejs = require('gulp-ejs')
 
-gulpEjs.ejs.fileLoader = function () { /* custom file loader */ }
+ejs.__EJS__.fileLoader = function () { /* custom file loader */ }
+```
+
+**Note:** As of version 4, the exported ejs object was renamed from `ejs` to `__EJS__`.
+
+### Async rendering (requires runtime support)
+
+Since ejs [v2.5.8](https://github.com/mde/ejs/releases/tag/v2.5.8) added support for promise/async-await `renderFile`, you can now use this option with gulp-ejs v4.1.0.
+
+You can use async/await in your ejs templates by passing `{ async: true }` in the ejs options hash:
+
+```javascript
+const ejs = require('gulp-ejs')
+
+async function foobar() { /* async task */ }
+
+gulp.src('./templates/*.ejs')
+	.pipe(ejs({ foobar }, { async: true }))
+	.pipe(gulp.dest('./dist'))
+```
+
+Then in your templates use `await` to call async functions. Here's an example:
+
+```javascript
+<%= await foobar() %>
 ```
 
 ## API
 
-### ejs(data, options, settings)
+### ejs(data, options)
 
 #### data
 Type: `hash`
@@ -78,20 +96,21 @@ A hash object for ejs options.
 
 For more info on `ejs` options, check the [project's documentation](https://github.com/mde/ejs).
 
-#### settings
-Type: `hash`
-Default: `{}`
+### Renaming file extensions
 
-A hash object to configure the plugin.
+As of version 4, the third api parameter `settings` was removed. You can no longer provide an extension. This is because it falls out of the scope of `gulp-ejs`. So if you need to save the file with a different extension you can use [gulp-rename](https://npmjs.com/package/gulp-rename).
 
-##### settings.ext
-Type: `String`
-Default: `undefined`
+Here's an example for template files with `.ejs` extension that are rendered into `.html` files:
 
-Defines the file extension that will be appended to the filename. If no extension is provided, the same extension of the input file will be used.
+```javascript
+const ejs = require('gulp-ejs')
+const rename = require('gulp-rename')
 
-**Note:** As of `v2.0.0` the output file extension is no longer `.html` by default, you need to specify it, otherwise it will have the same extension of the input file.
-
+gulp.src('./templates/*.ejs')
+  .pipe(ejs({ title: 'gulp-ejs' }))
+  .pipe(rename({ extname: '.html' }))
+  .pipe(gulp.dest('./dist'))
+```
 
 ## License
 
